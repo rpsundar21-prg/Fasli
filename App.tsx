@@ -32,10 +32,21 @@ const App: React.FC = () => {
   };
   
   // State initialization
-  const [regions, setRegions] = useState<Region[]>([]);
-  const [locations, setLocations] = useState<Location[]>([]);
-  const [cascades, setCascades] = useState<Cascade[]>([]);
-  const [villages, setVillages] = useState<Village[]>([]);
+  const [regions, setRegions] = useState<Region[]>([
+      { id: 'r1', name: 'Madurai' },
+      { id: 'r2', name: 'Sivaganga' }
+  ]);
+  const [locations, setLocations] = useState<Location[]>([
+      { id: 'l1', regionId: 'r1', name: 'Melur' },
+      { id: 'l2', regionId: 'r2', name: 'Keezhadi' }
+  ]);
+  const [cascades, setCascades] = useState<Cascade[]>([
+      { id: 'c1', locationId: 'l1', name: 'Melur Cluster' }
+  ]);
+  const [villages, setVillages] = useState<Village[]>([
+      { id: 'v1', cascadeId: 'c1', name: 'Pathinettangudi' }
+  ]);
+
   const [cultivations, setCultivations] = useState<Cultivation[]>([]);
   const [entries, setEntries] = useState<DiaryEntry[]>([]);
   const [queries, setQueries] = useState<Query[]>([]);
@@ -43,6 +54,8 @@ const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<FarmerProfile | null>(null);
   const [activeCultivationId, setActiveCultivationId] = useState<string>('');
   
+  const [selectedQueryId, setSelectedQueryId] = useState<string | null>(null);
+
   const [forecasts, setForecasts] = useState<Forecast[]>([{
       id: 'f-initial',
       date: new Date().toISOString().split('T')[0],
@@ -59,19 +72,17 @@ const App: React.FC = () => {
         setIsSyncing(true);
         try {
             const data = await ApiService.fetchAllData();
-            // Fallback to empty arrays if data is null/malformed
-            setCultivations(data?.cultivations || []);
-            setEntries(data?.entries || []);
-            setQueries(data?.queries || []);
-            setMarketPosts(data?.marketPosts || []);
-            setCurrentUser(data?.farmer || null);
+            if (data?.cultivations) setCultivations(data.cultivations);
+            if (data?.entries) setEntries(data.entries);
+            if (data?.queries) setQueries(data.queries);
+            if (data?.marketPosts) setMarketPosts(data.marketPosts);
+            if (data?.farmer) setCurrentUser(data.farmer);
             
             if (data?.cultivations?.length > 0) {
                 setActiveCultivationId(data.cultivations[0].id);
             }
         } catch (err) {
             console.error("Cloud D1 Load Trace:", err);
-            // Non-critical: allow app to continue with empty state
         } finally {
             setIsSyncing(false);
         }
@@ -79,13 +90,12 @@ const App: React.FC = () => {
     initData();
   }, []);
 
-  // Sync state helpers
   const syncWithCloud = async (action: () => Promise<any>) => {
       setIsSyncing(true);
       try {
           await action();
       } catch (err) {
-          console.warn("Sync failed (possibly local preview):", err);
+          console.warn("Sync failed:", err);
       } finally {
           setIsSyncing(false);
       }
@@ -127,8 +137,7 @@ const App: React.FC = () => {
       const langName = language === 'ta' ? 'Tamil' : 'English';
 
       const prompt = `Provide current weather and 3-day forecast for ${region}, Tamil Nadu.
-      Analyze needs for ${crop}.
-      Return JSON: {"temp": number, "condition": "Sunny"|"Rainy"|"Cloudy"|"Stormy", "chanceOfRain": number, "advice": "string in ${langName}"}`;
+      Analyze needs for ${crop}. Return JSON: {"temp": number, "condition": "Sunny"|"Rainy"|"Cloudy"|"Stormy", "chanceOfRain": number, "advice": "string in ${langName}"}`;
 
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
@@ -205,6 +214,49 @@ const App: React.FC = () => {
       isSyncing
   };
 
+  const adminProps = {
+    ...commonProps,
+    queries,
+    onResolveQuery: (id: string, solution: string) => {
+        setQueries(prev => prev.map(q => q.id === id ? { ...q, status: 'RESOLVED', solution, solutionDate: new Date().toISOString() } : q));
+        setCurrentScreen(ScreenName.ADMIN_QUERIES);
+    },
+    selectedQueryId,
+    onSelectQuery: (id: string) => {
+        setSelectedQueryId(id);
+        setCurrentScreen(ScreenName.ADMIN_QUERY_RESPONSE);
+    },
+    regions,
+    locations,
+    cascades,
+    villages,
+    addRegion: (name: string) => {
+        if (regions.find(r => r.name === name)) return false;
+        setRegions([...regions, { id: 'r' + Date.now(), name }]);
+        return true;
+    },
+    deleteRegion: (id: string) => setRegions(regions.filter(r => r.id !== id)),
+    addLocation: (rId: string, name: string) => {
+        if (locations.find(l => l.name === name)) return false;
+        setLocations([...locations, { id: 'l' + Date.now(), regionId: rId, name }]);
+        return true;
+    },
+    deleteLocation: (id: string) => setLocations(locations.filter(l => l.id !== id)),
+    addCascade: (lId: string, name: string) => {
+        if (cascades.find(c => c.name === name)) return false;
+        setCascades([...cascades, { id: 'c' + Date.now(), locationId: lId, name }]);
+        return true;
+    },
+    deleteCascade: (id: string) => setCascades(cascades.filter(c => c.id !== id)),
+    addVillage: (cId: string, name: string) => {
+        if (villages.find(v => v.name === name)) return false;
+        setVillages([...villages, { id: 'v' + Date.now(), cascadeId: cId, name }]);
+        return true;
+    },
+    deleteVillage: (id: string) => setVillages(villages.filter(v => v.id !== id)),
+    marketPosts
+  };
+
   const handleViewForecasts = () => {
     const fIds = forecasts.map(f => f.id);
     setViewedForecastIds(prev => [...new Set([...prev, ...fIds])]);
@@ -224,7 +276,18 @@ const App: React.FC = () => {
       case ScreenName.MARKETPLACE: return <MarketPlaceScreen {...farmerProps} />;
       case ScreenName.FORECAST: return <ForecastScreen {...farmerProps} />;
       case ScreenName.ADMIN_LOGIN: return <AdminLoginScreen {...commonProps} />;
-      case ScreenName.ADMIN_DASHBOARD: return <AdminDashboardScreen {...commonProps} queries={queries} />;
+      case ScreenName.ADMIN_DASHBOARD: return <AdminDashboardScreen {...adminProps} />;
+      case ScreenName.ADMIN_MASTER_MENU: return <AdminMasterMenu {...adminProps} />;
+      case ScreenName.ADMIN_MASTER_REGION: return <AdminMasterDataScreen {...adminProps} level="Region" />;
+      case ScreenName.ADMIN_MASTER_LOCATION: return <AdminMasterDataScreen {...adminProps} level="Location" />;
+      case ScreenName.ADMIN_MASTER_CASCADE: return <AdminMasterDataScreen {...adminProps} level="Cascade" />;
+      case ScreenName.ADMIN_MASTER_VILLAGE: return <AdminMasterDataScreen {...adminProps} level="Village" />;
+      case ScreenName.ADMIN_ANALYTICS: return <AnalyticsScreen {...adminProps} />;
+      case ScreenName.ADMIN_QUERIES: return <AdminQueriesScreen {...adminProps} />;
+      case ScreenName.ADMIN_QUERY_RESPONSE: return <AdminQueryResponseScreen {...adminProps} />;
+      case ScreenName.ADMIN_MARKET: return <AdminMarketScreen {...adminProps} />;
+      case ScreenName.FARMER_LIST: return <FarmerListScreen {...adminProps} />;
+      case ScreenName.FARMER_DETAILS: return <FarmerDetailsScreen {...adminProps} />;
       case ScreenName.SETTINGS: return <SettingsScreen {...farmerProps} />;
       default: return <WelcomeScreen {...commonProps} />;
     }
