@@ -31,21 +31,11 @@ const App: React.FC = () => {
       return key;
   };
   
-  // State initialization
-  const [regions, setRegions] = useState<Region[]>([
-      { id: 'r1', name: 'Madurai' },
-      { id: 'r2', name: 'Sivaganga' }
-  ]);
-  const [locations, setLocations] = useState<Location[]>([
-      { id: 'l1', regionId: 'r1', name: 'Melur' },
-      { id: 'l2', regionId: 'r2', name: 'Keezhadi' }
-  ]);
-  const [cascades, setCascades] = useState<Cascade[]>([
-      { id: 'c1', locationId: 'l1', name: 'Melur Cluster' }
-  ]);
-  const [villages, setVillages] = useState<Village[]>([
-      { id: 'v1', cascadeId: 'c1', name: 'Pathinettangudi' }
-  ]);
+  // Master Data State
+  const [regions, setRegions] = useState<Region[]>([]);
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [cascades, setCascades] = useState<Cascade[]>([]);
+  const [villages, setVillages] = useState<Village[]>([]);
 
   const [cultivations, setCultivations] = useState<Cultivation[]>([]);
   const [entries, setEntries] = useState<DiaryEntry[]>([]);
@@ -77,6 +67,12 @@ const App: React.FC = () => {
             if (data?.queries) setQueries(data.queries);
             if (data?.marketPosts) setMarketPosts(data.marketPosts);
             if (data?.farmer) setCurrentUser(data.farmer);
+            
+            // Sync Master Data
+            if (data?.regions) setRegions(data.regions);
+            if (data?.locations) setLocations(data.locations);
+            if (data?.cascades) setCascades(data.cascades);
+            if (data?.villages) setVillages(data.villages);
             
             if (data?.cultivations?.length > 0) {
                 setActiveCultivationId(data.cultivations[0].id);
@@ -211,7 +207,11 @@ const App: React.FC = () => {
       forecasts,
       isRefreshingForecast,
       onViewForecasts: () => { handleViewForecasts(); fetchRealForecast(); },
-      isSyncing
+      isSyncing,
+      regions,
+      locations,
+      cascades,
+      villages
   };
 
   const adminProps = {
@@ -232,28 +232,48 @@ const App: React.FC = () => {
     villages,
     addRegion: (name: string) => {
         if (regions.find(r => r.name === name)) return false;
-        setRegions([...regions, { id: 'r' + Date.now(), name }]);
+        const newRegion = { id: 'r' + Date.now(), name };
+        setRegions([...regions, newRegion]);
+        syncWithCloud(() => ApiService.saveMasterData('region', newRegion));
         return true;
     },
-    deleteRegion: (id: string) => setRegions(regions.filter(r => r.id !== id)),
+    deleteRegion: (id: string) => {
+        setRegions(regions.filter(r => r.id !== id));
+        syncWithCloud(() => ApiService.deleteMasterData('region', id));
+    },
     addLocation: (rId: string, name: string) => {
         if (locations.find(l => l.name === name)) return false;
-        setLocations([...locations, { id: 'l' + Date.now(), regionId: rId, name }]);
+        const newLoc = { id: 'l' + Date.now(), regionId: rId, name };
+        setLocations([...locations, newLoc]);
+        syncWithCloud(() => ApiService.saveMasterData('location', newLoc));
         return true;
     },
-    deleteLocation: (id: string) => setLocations(locations.filter(l => l.id !== id)),
+    deleteLocation: (id: string) => {
+        setLocations(locations.filter(l => l.id !== id));
+        syncWithCloud(() => ApiService.deleteMasterData('location', id));
+    },
     addCascade: (lId: string, name: string) => {
         if (cascades.find(c => c.name === name)) return false;
-        setCascades([...cascades, { id: 'c' + Date.now(), locationId: lId, name }]);
+        const newCasc = { id: 'c' + Date.now(), locationId: lId, name };
+        setCascades([...cascades, newCasc]);
+        syncWithCloud(() => ApiService.saveMasterData('cascade', newCasc));
         return true;
     },
-    deleteCascade: (id: string) => setCascades(cascades.filter(c => c.id !== id)),
+    deleteCascade: (id: string) => {
+        setCascades(cascades.filter(c => c.id !== id));
+        syncWithCloud(() => ApiService.deleteMasterData('cascade', id));
+    },
     addVillage: (cId: string, name: string) => {
         if (villages.find(v => v.name === name)) return false;
-        setVillages([...villages, { id: 'v' + Date.now(), cascadeId: cId, name }]);
+        const newVill = { id: 'v' + Date.now(), cascadeId: cId, name };
+        setVillages([...villages, newVill]);
+        syncWithCloud(() => ApiService.saveMasterData('village', newVill));
         return true;
     },
-    deleteVillage: (id: string) => setVillages(villages.filter(v => v.id !== id)),
+    deleteVillage: (id: string) => {
+        setVillages(villages.filter(v => v.id !== id));
+        syncWithCloud(() => ApiService.deleteMasterData('village', id));
+    },
     marketPosts
   };
 
@@ -266,7 +286,7 @@ const App: React.FC = () => {
     switch (currentScreen) {
       case ScreenName.WELCOME: return <WelcomeScreen {...commonProps} />;
       case ScreenName.LOGIN: return <LoginScreen {...commonProps} />;
-      case ScreenName.REGISTER: return <RegisterScreen {...commonProps} />;
+      case ScreenName.REGISTER: return <RegisterScreen {...farmerProps} />;
       case ScreenName.FARMER_DASHBOARD: return <FarmerDashboard {...farmerProps} />;
       case ScreenName.MY_CROPS: return <MyCropsScreen {...farmerProps} onAddNew={() => { setCultivationToEdit(null); setCurrentScreen(ScreenName.SELECT_CROP); }} />;
       case ScreenName.SELECT_CROP: return <SelectCropScreen {...farmerProps} />;

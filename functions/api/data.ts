@@ -1,5 +1,4 @@
 
-// Added missing Cloudflare D1 and Pages types to fix compilation errors
 interface D1PreparedStatement {
   bind(...values: any[]): D1PreparedStatement;
   first<T = any>(colName?: string): Promise<T | null>;
@@ -33,13 +32,23 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     const entries = await env.DB.prepare("SELECT * FROM entries").all();
     const queries = await env.DB.prepare("SELECT * FROM queries").all();
     const marketPosts = await env.DB.prepare("SELECT * FROM market_posts").all();
+    
+    // Master Data
+    const regions = await env.DB.prepare("SELECT * FROM regions").all();
+    const locations = await env.DB.prepare("SELECT * FROM locations").all();
+    const cascades = await env.DB.prepare("SELECT * FROM cascades").all();
+    const villages = await env.DB.prepare("SELECT * FROM villages").all();
 
     return new Response(JSON.stringify({
       farmer: farmers,
       cultivations: cultivations.results,
       entries: entries.results,
       queries: queries.results,
-      marketPosts: marketPosts.results
+      marketPosts: marketPosts.results,
+      regions: regions.results,
+      locations: locations.results,
+      cascades: cascades.results,
+      villages: villages.results
     }), {
       headers: { "Content-Type": "application/json" }
     });
