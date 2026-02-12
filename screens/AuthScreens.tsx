@@ -166,11 +166,15 @@ export const OTPLoginScreen: React.FC<AuthScreenProps> = ({ navigate, t, languag
 };
 
 // 4. Registration Screen (Improved dropdown logic)
+// inside AuthScreens.tsx
+
 export const RegisterScreen: React.FC<AuthScreenProps> = ({ navigate, t, regions = [], locations = [], cascades = [], villages = [], farmers = [] }) => {
     const [name, setName] = useState('');
     const [mobile, setMobile] = useState('');
     const [password, setPassword] = useState('');
     const [validationError, setValidationError] = useState('');
+    
+    // Dropdown States
     const [selectedRegion, setSelectedRegion] = useState('');
     const [selectedLocation, setSelectedLocation] = useState('');
     const [selectedCascade, setSelectedCascade] = useState('');
@@ -178,6 +182,7 @@ export const RegisterScreen: React.FC<AuthScreenProps> = ({ navigate, t, regions
     const [membership, setMembership] = useState<string>(MembershipType.NON_MEMBER);
     const [jointYear, setJointYear] = useState('');
 
+    // Filtering Logic
     const filteredLocations = locations.filter(l => l.regionId === selectedRegion);
     const filteredCascades = cascades.filter(c => c.locationId === selectedLocation);
     const filteredVillages = villages.filter(v => v.cascadeId === selectedCascade);
@@ -191,16 +196,15 @@ export const RegisterScreen: React.FC<AuthScreenProps> = ({ navigate, t, regions
             return;
         }
         if (!name || !password || !selectedRegion || !selectedVillage) {
-            setValidationError('Please fill all mandatory fields (Name, Password, Location).');
+            setValidationError('Please fill all mandatory fields (Name, Mobile, Password, Location).');
             return;
         }
 
         // 2. Prepare Data
-        // Note: variable names must match what functions/register.ts expects
         const farmerData = {
             name: name,
             mobile: mobile,
-            password: password, 
+            password: password,
             region_id: selectedRegion,
             location_id: selectedLocation,
             cascade_id: selectedCascade,
@@ -210,8 +214,8 @@ export const RegisterScreen: React.FC<AuthScreenProps> = ({ navigate, t, regions
         };
 
         try {
-            // 3. Call the API
-            console.log("Sending data to /register...", farmerData); 
+            // 3. Send Data to Cloudflare
+            // Note: This only works on the DEPLOYED site, not localhost!
             const response = await fetch('/register', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -224,11 +228,11 @@ export const RegisterScreen: React.FC<AuthScreenProps> = ({ navigate, t, regions
                 alert("Registration Successful! Please Login.");
                 navigate(ScreenName.LOGIN);
             } else {
-                setValidationError("Server Error: " + (result.error || "Unknown error"));
+                setValidationError(result.error || "Registration Failed");
             }
         } catch (error) {
             console.error(error);
-            setValidationError("Network Error: Could not connect to server. (Is the API deployed?)");
+            setValidationError("Network Error: If you are on localhost, you MUST deploy to Cloudflare to test this feature.");
         }
     };
 
@@ -244,7 +248,7 @@ export const RegisterScreen: React.FC<AuthScreenProps> = ({ navigate, t, regions
 
           <div className="space-y-5 pb-12">
              {validationError && (
-                 <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 rounded-lg text-sm font-bold animate-pulse">
+                 <div className="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 rounded-lg text-sm font-bold">
                      {validationError}
                  </div>
              )}
@@ -270,6 +274,7 @@ export const RegisterScreen: React.FC<AuthScreenProps> = ({ navigate, t, regions
                    <MapPin className="w-4 h-4 mr-1" /> {t('location_details')}
                  </h3>
                  <div className="space-y-1">
+                   {/* Region Select */}
                    <Select 
                       label={t('select_region')}
                       value={selectedRegion}
@@ -284,6 +289,8 @@ export const RegisterScreen: React.FC<AuthScreenProps> = ({ navigate, t, regions
                           ...regions.map(r => ({ value: r.id, label: r.name }))
                       ]}
                    />
+                   
+                   {/* Location Select */}
                    <Select 
                       label={t('select_location')}
                       value={selectedLocation}
@@ -294,10 +301,12 @@ export const RegisterScreen: React.FC<AuthScreenProps> = ({ navigate, t, regions
                       }}
                       disabled={!selectedRegion}
                       options={[
-                          { value: '', label: regions.length > 0 ? `-- ${t('select_location')} --` : 'No Regions Available' },
+                          { value: '', label: `-- ${t('select_location')} --` },
                           ...filteredLocations.map(l => ({ value: l.id, label: l.name }))
                       ]}
                    />
+
+                   {/* Cascade Select */}
                    <Select 
                       label={t('select_cascade')}
                       value={selectedCascade}
@@ -307,17 +316,19 @@ export const RegisterScreen: React.FC<AuthScreenProps> = ({ navigate, t, regions
                       }}
                       disabled={!selectedLocation}
                       options={[
-                          { value: '', label: filteredLocations.length > 0 ? `-- ${t('select_cascade')} --` : 'Waiting for Location...' },
+                          { value: '', label: `-- ${t('select_cascade')} --` },
                           ...filteredCascades.map(c => ({ value: c.id, label: c.name }))
                       ]}
                    />
+
+                   {/* Village Select */}
                    <Select 
                       label={t('select_village')}
                       value={selectedVillage}
                       onChange={(e) => setSelectedVillage(e.target.value)}
                       disabled={!selectedCascade}
                       options={[
-                          { value: '', label: filteredCascades.length > 0 ? `-- ${t('select_village')} --` : 'Waiting for Cascade...' },
+                          { value: '', label: `-- ${t('select_village')} --` },
                           ...filteredVillages.map(v => ({ value: v.id, label: v.name }))
                       ]}
                    />
@@ -335,14 +346,14 @@ export const RegisterScreen: React.FC<AuthScreenProps> = ({ navigate, t, regions
                       { value: MembershipType.KALANJIAM, label: 'Kalanjiam Member' },
                   ]}
                />
-               {membership !== MembershipType.NON_MEMBER && (
-                   <Input 
-                      label={t('joint_year')}
-                      placeholder="e.g. 2021" 
-                      value={jointYear}
-                      onChange={(e) => setJointYear(e.target.value)}
-                   />
-               )}
+               
+               <Input 
+                  label={t('joint_year')}
+                  placeholder="e.g. 2021" 
+                  value={jointYear}
+                  onChange={(e) => setJointYear(e.target.value)}
+               />
+
                <Input 
                     label={t('password')}
                     type="password" 
