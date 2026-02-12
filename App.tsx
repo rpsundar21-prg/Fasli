@@ -35,6 +35,41 @@ const App: React.FC = () => {
       if (translations['en'][key]) return translations['en'][key];
       return key;
   };
+
+  const registerFarmer = async (farmerData) => {
+  try {
+    // Make sure the URL matches your Cloudflare URL
+    // If testing locally, use http://localhost:8788/register
+    const response = await fetch('/register', { 
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        id: Date.now().toString(), // Or let the backend handle it
+        name: farmerData.name,
+        mobile: farmerData.mobile,
+        region_id: farmerData.regionId,   // Ensure variable names match!
+        location_id: farmerData.locationId,
+        cascade_id: farmerData.cascadeId,
+        village_id: farmerData.villageId,
+        primary_crop: farmerData.primaryCrop,
+        membership_type: farmerData.membershipType,
+        joint_year: farmerData.jointYear
+      }),
+    });
+
+    const result = await response.json();
+    
+    if (result.success) {
+      alert("Registration Successful!");
+    } else {
+      alert("Error: " + result.error);
+    }
+  } catch (error) {
+    console.error("Network Error:", error);
+  }
+};
   
   // Master Data State
   const [regions, setRegions] = useState<Region[]>([]);
@@ -183,6 +218,8 @@ const App: React.FC = () => {
       setIsRefreshingForecast(false);
     }
   }, [activeCultivationId, cultivations, currentUser, isRefreshingForecast, language]);
+
+
 
   // Master Data Handlers
   const handleAddMaster = async (type: string, name: string, parentId?: string) => {

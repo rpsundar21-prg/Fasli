@@ -27,35 +27,41 @@ export const onRequest: PagesFunction<Env> = async (context) => {
   const { env } = context;
 
   try {
-    // Fetch all farmers for registry/duplicate check
+    // 1. Fetch Farmers
     const farmersRaw = await env.DB.prepare(`
-      SELECT 
-        id, name, mobile, 
-        region_id AS regionId, 
-        location_id AS locationId, 
-        cascade_id AS cascadeId, 
-        village_id AS villageId, 
-        primary_crop AS primaryCrop, 
-        membership_type AS membershipType, 
-        joint_year AS jointYear 
+      SELECT id, name, mobile, region_id AS regionId, location_id AS locationId, 
+      cascade_id AS cascadeId, village_id AS villageId, primary_crop AS primaryCrop, 
+      membership_type AS membershipType, joint_year AS jointYear 
       FROM farmers
     `).all();
-    const farmers = farmersRaw.results || [];
 
+    // 2. Fetch Queries (Fixing names for Frontend)
+    const queriesRaw = await env.DB.prepare(`
+      SELECT id, question, status, crop_name AS cropName, 
+      image_url AS imageUrl, solution, farmer_id AS farmerId 
+      FROM queries
+    `).all();
+
+    // 3. Fetch Market Posts (Fixing names for Frontend)
+    const marketPostsRaw = await env.DB.prepare(`
+      SELECT id, type, date, farmer_name AS farmerName, 
+      item_name AS itemName, quantity, amount, contact 
+      FROM market_posts
+    `).all();
+
+    // 4. Other tables (assuming simple structure)
     const cultivationsRaw = await env.DB.prepare("SELECT * FROM cultivations").all();
     const entriesRaw = await env.DB.prepare("SELECT * FROM entries").all();
-    const queriesRaw = await env.DB.prepare("SELECT * FROM queries").all();
-    const marketPostsRaw = await env.DB.prepare("SELECT * FROM market_posts").all();
     
-    // Master Data with explicit aliasing to match TypeScript interfaces (camelCase)
+    // 5. Master Data (Your original code was correct here)
     const regionsRaw = await env.DB.prepare("SELECT id, name FROM regions").all();
-const locationsRaw = await env.DB.prepare("SELECT id, region_id AS regionId, name FROM locations").all();
-const cascadesRaw = await env.DB.prepare("SELECT id, location_id AS locationId, name FROM cascades").all();
-const villagesRaw = await env.DB.prepare("SELECT id, cascade_id AS cascadeId, name FROM villages").all();
+    const locationsRaw = await env.DB.prepare("SELECT id, region_id AS regionId, name FROM locations").all();
+    const cascadesRaw = await env.DB.prepare("SELECT id, location_id AS locationId, name FROM cascades").all();
+    const villagesRaw = await env.DB.prepare("SELECT id, cascade_id AS cascadeId, name FROM villages").all();
 
     return new Response(JSON.stringify({
-      farmer: farmers.length > 0 ? farmers[0] : null,
-      farmers: farmers,
+      farmer: farmersRaw.results && farmersRaw.results.length > 0 ? farmersRaw.results[0] : null,
+      farmers: farmersRaw.results || [],
       cultivations: cultivationsRaw.results || [],
       entries: entriesRaw.results || [],
       queries: queriesRaw.results || [],
@@ -65,15 +71,19 @@ const villagesRaw = await env.DB.prepare("SELECT id, cascade_id AS cascadeId, na
       cascades: cascadesRaw.results || [],
       villages: villagesRaw.results || []
     }), {
-      headers: { 
-        "Content-Type": "application/json",
-        "Cache-Control": "no-cache"
-      }
+      headers: { "Content-Type": "application/json", "Cache-Control": "no-cache" }
     });
+
   } catch (error: any) {
-    console.error("D1 Fetch Error:", error);
-    return new Response(JSON.stringify({ error: error.message, regions: [], locations: [], cascades: [], villages: [] }), {
-      status: 200, // Return 200 with empty arrays to prevent frontend crash
+    // This logs the REAL error to your Cloudflare logs so you can see what's wrong
+    console.error("D1 Fetch Error:", error); 
+    
+    // Returns empty data so the app doesn't crash, but shows the error in the JSON
+    return new Response(JSON.stringify({ 
+        error: error.message, 
+        regions: [], locations: [], cascades: [], villages: [] 
+    }), {
+      status: 200, 
       headers: { "Content-Type": "application/json" }
     });
   }
