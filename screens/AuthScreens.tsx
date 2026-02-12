@@ -136,22 +136,57 @@ export const RegisterScreen: React.FC<AuthScreenProps> = ({ navigate, t, regions
     const filteredCascades = cascades.filter(c => c.locationId === selectedLocation);
     const filteredVillages = villages.filter(v => v.cascadeId === selectedCascade);
 
-    const handleRegister = () => {
+    // Replace your existing handleRegister with this:
+    const handleRegister = async () => {
         setValidationError('');
+        
+        // 1. Client-side Validation
         if (!/^\d{10}$/.test(mobile)) {
             setValidationError('Mobile number must be exactly 10 digits.');
             return;
         }
-        const duplicateFarmer = farmers.find(f => f.mobile === mobile);
-        if (duplicateFarmer) {
-            setValidationError(`Mobile number already exists for farmer: ${duplicateFarmer.name}`);
+        if (!name || !selectedRegion || !selectedVillage) {
+            setValidationError('Please fill all mandatory fields.');
             return;
         }
-        if (!name || !password || !selectedRegion || !selectedVillage) {
-            setValidationError('Please fill all mandatory fields including location.');
-            return;
+
+        // 2. Prepare Data for API
+        // Note: We use snake_case keys (e.g., region_id) to match the Database
+        const farmerData = {
+            name: name,
+            mobile: mobile,
+            region_id: selectedRegion,
+            location_id: selectedLocation,
+            cascade_id: selectedCascade,
+            village_id: selectedVillage,
+            membership_type: membership,
+            joint_year: jointYear,
+            primary_crop: "Pending", // We will update this later if needed
+            password: password
+        };
+
+        try {
+            // 3. Send Data to Cloudflare Backend
+            // Make sure you have created functions/register.ts as discussed before
+            const response = await fetch('/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(farmerData)
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                alert("Registration Successful!");
+                // Now navigate to Login or Crop Selection
+                navigate(ScreenName.LOGIN); 
+            } else {
+                setValidationError(result.error || "Registration Failed");
+            }
+        } catch (error) {
+            console.error(error);
+            setValidationError("Network Error: Could not connect to server.");
         }
-        navigate(ScreenName.SELECT_CROP);
     };
 
     return (

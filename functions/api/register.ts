@@ -27,47 +27,30 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   const { request, env } = context;
 
   try {
-    // 1. Get the data sent from the App
     const body = await request.json() as any;
 
-    // 2. Destructure the fields
+    // 1. Get password from the request
     const {
-      id, 
-      name, 
-      mobile, 
-      region_id, 
-      location_id, 
-      cascade_id, 
-      village_id, 
-      primary_crop, 
-      membership_type, 
-      joint_year
+      id, name, mobile, region_id, location_id, 
+      cascade_id, village_id, primary_crop, 
+      membership_type, joint_year, password // <--- Added password
     } = body;
 
-    // 3. Insert into Database
-    // We use crypto.randomUUID() to generate an ID if the app didn't send one
     const newId = id || crypto.randomUUID();
 
+    // 2. Insert into Database (Added password column)
     const info = await env.DB.prepare(`
       INSERT INTO farmers (
         id, name, mobile, region_id, location_id, 
         cascade_id, village_id, primary_crop, 
-        membership_type, joint_year
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        membership_type, joint_year, password
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
-      newId, 
-      name, 
-      mobile, 
-      region_id, 
-      location_id, 
-      cascade_id, 
-      village_id, 
-      primary_crop, 
-      membership_type, 
-      joint_year
+      newId, name, mobile, region_id, location_id, 
+      cascade_id, village_id, primary_crop, 
+      membership_type, joint_year, password // <--- Bind password
     ).run();
 
-    // 4. Return success
     return new Response(JSON.stringify({ success: true, id: newId }), {
       headers: { "Content-Type": "application/json" }
     });
