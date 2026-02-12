@@ -27,8 +27,8 @@ export const onRequest: PagesFunction<Env> = async (context) => {
   const { env } = context;
 
   try {
-    // Farmer with aliased keys
-    const farmers = await env.DB.prepare(`
+    // Fetch all farmers for registry/duplicate check
+    const farmersAll = await env.DB.prepare(`
       SELECT 
         id, name, mobile, 
         region_id AS regionId, 
@@ -38,34 +38,36 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         primary_crop AS primaryCrop, 
         membership_type AS membershipType, 
         joint_year AS jointYear 
-      FROM farmers LIMIT 1
-    `).first();
+      FROM farmers
+    `).all();
 
     const cultivations = await env.DB.prepare("SELECT * FROM cultivations").all();
     const entries = await env.DB.prepare("SELECT * FROM entries").all();
     const queries = await env.DB.prepare("SELECT * FROM queries").all();
     const marketPosts = await env.DB.prepare("SELECT * FROM market_posts").all();
     
-    // Master Data with aliased parent IDs
+    // Master Data with explicit aliasing to match TypeScript interfaces (camelCase)
     const regions = await env.DB.prepare("SELECT id, name FROM regions").all();
     const locations = await env.DB.prepare("SELECT id, region_id AS regionId, name FROM locations").all();
     const cascades = await env.DB.prepare("SELECT id, location_id AS locationId, name FROM cascades").all();
     const villages = await env.DB.prepare("SELECT id, cascade_id AS cascadeId, name FROM villages").all();
 
     return new Response(JSON.stringify({
-      farmer: farmers,
-      cultivations: cultivations.results,
-      entries: entries.results,
-      queries: queries.results,
-      marketPosts: marketPosts.results,
-      regions: regions.results,
-      locations: locations.results,
-      cascades: cascades.results,
-      villages: villages.results
+      farmer: farmersAll.results.length > 0 ? farmersAll.results[0] : null,
+      farmers: farmersAll.results || [],
+      cultivations: cultivations.results || [],
+      entries: entries.results || [],
+      queries: queries.results || [],
+      marketPosts: marketPosts.results || [],
+      regions: regions.results || [],
+      locations: locations.results || [],
+      cascades: cascades.results || [],
+      villages: villages.results || []
     }), {
       headers: { "Content-Type": "application/json" }
     });
-  } catch (error) {
+  } catch (error: any) {
+    console.error("D1 Fetch Error:", error);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { "Content-Type": "application/json" }
