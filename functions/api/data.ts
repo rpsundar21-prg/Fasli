@@ -27,17 +27,30 @@ export const onRequest: PagesFunction<Env> = async (context) => {
   const { env } = context;
 
   try {
-    const farmers = await env.DB.prepare("SELECT * FROM farmers LIMIT 1").first();
+    // Farmer with aliased keys
+    const farmers = await env.DB.prepare(`
+      SELECT 
+        id, name, mobile, 
+        region_id AS regionId, 
+        location_id AS locationId, 
+        cascade_id AS cascadeId, 
+        village_id AS villageId, 
+        primary_crop AS primaryCrop, 
+        membership_type AS membershipType, 
+        joint_year AS jointYear 
+      FROM farmers LIMIT 1
+    `).first();
+
     const cultivations = await env.DB.prepare("SELECT * FROM cultivations").all();
     const entries = await env.DB.prepare("SELECT * FROM entries").all();
     const queries = await env.DB.prepare("SELECT * FROM queries").all();
     const marketPosts = await env.DB.prepare("SELECT * FROM market_posts").all();
     
-    // Master Data
-    const regions = await env.DB.prepare("SELECT * FROM regions").all();
-    const locations = await env.DB.prepare("SELECT * FROM locations").all();
-    const cascades = await env.DB.prepare("SELECT * FROM cascades").all();
-    const villages = await env.DB.prepare("SELECT * FROM villages").all();
+    // Master Data with aliased parent IDs
+    const regions = await env.DB.prepare("SELECT id, name FROM regions").all();
+    const locations = await env.DB.prepare("SELECT id, region_id AS regionId, name FROM locations").all();
+    const cascades = await env.DB.prepare("SELECT id, location_id AS locationId, name FROM cascades").all();
+    const villages = await env.DB.prepare("SELECT id, cascade_id AS cascadeId, name FROM villages").all();
 
     return new Response(JSON.stringify({
       farmer: farmers,

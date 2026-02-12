@@ -1,5 +1,4 @@
 
-
 import React, { useState } from 'react';
 import { Query, ScreenName, Region, Location, Cascade, Village, MarketPost, MarketType } from '../types';
 import { Button, Input, AdminLayout, Card, Select } from '../components/ui';
@@ -32,7 +31,6 @@ interface AdminScreenProps {
   marketPosts?: MarketPost[];
 }
 
-// ... Admin Login (Unchanged)
 export const AdminLoginScreen: React.FC<AdminScreenProps> = ({ navigate }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -98,7 +96,6 @@ const AdminHeader: React.FC<{ title: string; navigate: any }> = ({ title, naviga
     </header>
 );
 
-// New: Master Data Menu
 export const AdminMasterMenu: React.FC<AdminScreenProps> = ({ navigate }) => {
     return (
         <AdminLayout>
@@ -131,7 +128,6 @@ export const AdminMasterMenu: React.FC<AdminScreenProps> = ({ navigate }) => {
     );
 };
 
-// New: Generic Master Data Screen
 export const AdminMasterDataScreen: React.FC<AdminScreenProps> = ({ 
     navigate, level, regions=[], locations=[], cascades=[], villages=[],
     addRegion, deleteRegion, addLocation, deleteLocation, 
@@ -150,15 +146,15 @@ export const AdminMasterDataScreen: React.FC<AdminScreenProps> = ({
 
         if (level === 'Region' && addRegion) success = addRegion(name);
         if (level === 'Location' && addLocation) {
-            if (!selectedRegion) { setMsg('Select Region first'); return; }
+            if (!selectedRegion) { setMsg('Error: Select Region first'); return; }
             success = addLocation(selectedRegion, name);
         }
         if (level === 'Cascade' && addCascade) {
-            if (!selectedLocation) { setMsg('Select Location first'); return; }
+            if (!selectedLocation) { setMsg('Error: Select Location first'); return; }
             success = addCascade(selectedLocation, name);
         }
         if (level === 'Village' && addVillage) {
-            if (!selectedCascade) { setMsg('Select Cascade first'); return; }
+            if (!selectedCascade) { setMsg('Error: Select Cascade first'); return; }
             success = addVillage(selectedCascade, name);
         }
 
@@ -170,12 +166,16 @@ export const AdminMasterDataScreen: React.FC<AdminScreenProps> = ({
         }
     };
 
-    // Filter Lists for Display
     let displayList: {id: string, name: string}[] = [];
-    if (level === 'Region') displayList = regions;
-    if (level === 'Location') displayList = locations.filter(l => !selectedRegion || l.regionId === selectedRegion);
-    if (level === 'Cascade') displayList = cascades.filter(c => !selectedLocation || c.locationId === selectedLocation);
-    if (level === 'Village') displayList = villages.filter(v => !selectedCascade || v.cascadeId === selectedCascade);
+    if (level === 'Region') {
+        displayList = regions;
+    } else if (level === 'Location') {
+        displayList = locations.filter(l => !selectedRegion || l.regionId === selectedRegion);
+    } else if (level === 'Cascade') {
+        displayList = cascades.filter(c => !selectedLocation || c.locationId === selectedLocation);
+    } else if (level === 'Village') {
+        displayList = villages.filter(v => !selectedCascade || v.cascadeId === selectedCascade);
+    }
 
     return (
         <AdminLayout>
@@ -253,7 +253,7 @@ export const AdminMasterDataScreen: React.FC<AdminScreenProps> = ({
                         <tbody>
                             {displayList.map(item => (
                                 <tr key={item.id} className="border-b hover:bg-slate-50 last:border-0">
-                                    <td className="p-4">{item.name}</td>
+                                    <td className="p-4 font-medium text-slate-700">{item.name}</td>
                                     <td className="p-4 text-right">
                                         <button 
                                             onClick={() => {
@@ -262,7 +262,7 @@ export const AdminMasterDataScreen: React.FC<AdminScreenProps> = ({
                                                 if(level==='Cascade' && deleteCascade) deleteCascade(item.id);
                                                 if(level==='Village' && deleteVillage) deleteVillage(item.id);
                                             }}
-                                            className="text-red-500 hover:bg-red-50 p-2 rounded"
+                                            className="text-red-500 hover:bg-red-50 p-2 rounded transition-colors"
                                         >
                                             <Trash2 className="w-4 h-4"/>
                                         </button>
@@ -270,7 +270,7 @@ export const AdminMasterDataScreen: React.FC<AdminScreenProps> = ({
                                 </tr>
                             ))}
                             {displayList.length === 0 && (
-                                <tr><td colSpan={2} className="p-6 text-center text-slate-400">No entries found.</td></tr>
+                                <tr><td colSpan={2} className="p-6 text-center text-slate-400 italic">No entries found for the current selection.</td></tr>
                             )}
                         </tbody>
                     </table>
@@ -280,7 +280,6 @@ export const AdminMasterDataScreen: React.FC<AdminScreenProps> = ({
     );
 };
 
-// New: Admin Market Screen
 export const AdminMarketScreen: React.FC<AdminScreenProps> = ({ navigate, marketPosts }) => {
     const [filter, setFilter] = useState<'ALL' | 'SALE' | 'DEMAND'>('ALL');
     const filteredPosts = marketPosts?.filter(p => filter === 'ALL' || p.type === filter) || [];
@@ -339,15 +338,12 @@ export const AdminMarketScreen: React.FC<AdminScreenProps> = ({ navigate, market
     );
 }
 
-// ... Dashboard, FarmerList, Details, Analytics, Queries, QueryResponse (Keep existing implementations)
 export const AdminDashboardScreen: React.FC<AdminScreenProps> = ({ navigate, queries }) => {
-    // Keep existing implementation
     const pendingQueries = queries?.filter(q => q.status === 'PENDING').length || 0;
     return (
         <AdminLayout>
             <AdminHeader title="Dashboard" navigate={navigate} />
             <div className="p-8 max-w-7xl mx-auto">
-                 {/* Existing Dashboard Cards */}
                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                     <Card className="border-l-4 border-blue-600 p-6">
                         <div className="flex justify-between items-start">
@@ -395,7 +391,6 @@ export const AdminDashboardScreen: React.FC<AdminScreenProps> = ({ navigate, que
 };
 
 export const FarmerListScreen: React.FC<AdminScreenProps> = ({ navigate }) => {
-    // Keep existing implementation
     const farmers = [
         { id: 1, name: 'Velu Naik', village: 'Keezhadi', crop: 'Paddy' },
         { id: 2, name: 'Lakshmi A', village: 'Melur', crop: 'Sugarcane' },
@@ -432,6 +427,7 @@ export const FarmerListScreen: React.FC<AdminScreenProps> = ({ navigate }) => {
         </AdminLayout>
     );
 };
+
 export const FarmerDetailsScreen: React.FC<AdminScreenProps> = ({ navigate }) => {
     return (
         <AdminLayout>
@@ -450,6 +446,7 @@ export const FarmerDetailsScreen: React.FC<AdminScreenProps> = ({ navigate }) =>
         </AdminLayout>
     );
 };
+
 export const AnalyticsScreen: React.FC<AdminScreenProps> = ({ navigate }) => {
     return (
         <AdminLayout>
@@ -472,6 +469,7 @@ export const AnalyticsScreen: React.FC<AdminScreenProps> = ({ navigate }) => {
         </AdminLayout>
     );
 };
+
 export const AdminQueriesScreen: React.FC<AdminScreenProps> = ({ navigate, queries, onSelectQuery }) => {
     return (
         <AdminLayout>
@@ -487,15 +485,19 @@ export const AdminQueriesScreen: React.FC<AdminScreenProps> = ({ navigate, queri
                             <ChevronLeft className="rotate-180 text-slate-400" />
                         </div>
                     ))}
+                    {(!queries || queries.length === 0) && (
+                        <div className="p-12 text-center text-slate-400">No queries found.</div>
+                    )}
                 </div>
              </div>
         </AdminLayout>
     );
 };
+
 export const AdminQueryResponseScreen: React.FC<AdminScreenProps> = ({ navigate, queries, selectedQueryId, onResolveQuery }) => {
     const query = queries?.find(q => q.id === selectedQueryId);
     const [solution, setSolution] = useState(query?.solution || '');
-    if (!query) return <div>Query not found</div>;
+    if (!query) return <div className="p-8 text-center">Query not found</div>;
     return (
         <AdminLayout>
             <div className="bg-white border-b p-4 flex items-center sticky top-0 shadow-sm z-10">
@@ -505,8 +507,13 @@ export const AdminQueryResponseScreen: React.FC<AdminScreenProps> = ({ navigate,
             <div className="p-8 max-w-4xl mx-auto">
                  <Card className="p-6">
                     <h2 className="text-lg font-bold mb-4">{query.question}</h2>
+                    {query.imageUrl && (
+                        <div className="mb-4">
+                            <img src={query.imageUrl} alt="Query context" className="max-h-64 rounded-lg object-contain bg-slate-100" />
+                        </div>
+                    )}
                     <textarea 
-                        className="w-full border p-4 h-48 rounded mb-4" 
+                        className="w-full border p-4 h-48 rounded mb-4 focus:ring-2 focus:ring-blue-500 outline-none" 
                         placeholder="Type solution..."
                         value={solution}
                         onChange={(e) => setSolution(e.target.value)}
