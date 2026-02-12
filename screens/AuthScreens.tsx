@@ -140,52 +140,52 @@ export const RegisterScreen: React.FC<AuthScreenProps> = ({ navigate, t, regions
     const handleRegister = async () => {
         setValidationError('');
         
-        // 1. Client-side Validation
+        // 1. Validation
         if (!/^\d{10}$/.test(mobile)) {
             setValidationError('Mobile number must be exactly 10 digits.');
             return;
         }
-        if (!name || !selectedRegion || !selectedVillage) {
-            setValidationError('Please fill all mandatory fields.');
+        if (!name || !password || !selectedRegion || !selectedVillage) {
+            setValidationError('Please fill all mandatory fields (Name, Password, Location).');
             return;
         }
 
-        // 2. Prepare Data for API
-        // Note: We use snake_case keys (e.g., region_id) to match the Database
+        // 2. Prepare Data
         const farmerData = {
             name: name,
             mobile: mobile,
+            password: password, // sending password to backend
             region_id: selectedRegion,
             location_id: selectedLocation,
             cascade_id: selectedCascade,
             village_id: selectedVillage,
             membership_type: membership,
             joint_year: jointYear,
-            primary_crop: "Pending", // We will update this later if needed
-            password: password
+            primary_crop: "Pending" 
         };
 
         try {
-            // 3. Send Data to Cloudflare Backend
-            // Make sure you have created functions/register.ts as discussed before
+            // 3. Send to Cloudflare Backend
             const response = await fetch('/register', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(farmerData)
             });
 
+            // 4. Handle Response
             const result = await response.json();
 
-            if (result.success) {
+            if (response.ok && result.success) {
                 alert("Registration Successful!");
-                // Now navigate to Login or Crop Selection
-                navigate(ScreenName.LOGIN); 
+                navigate(ScreenName.LOGIN); // Send to Login screen after success
             } else {
+                // If the server returns an error (like "Mobile already exists")
                 setValidationError(result.error || "Registration Failed");
             }
         } catch (error) {
             console.error(error);
-            setValidationError("Network Error: Could not connect to server.");
+            // This is the error you saw in the screenshot
+            setValidationError("Network Error: Could not connect to server. (Check if 'functions/register.ts' is deployed)");
         }
     };
 

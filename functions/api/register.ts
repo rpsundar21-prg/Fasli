@@ -23,41 +23,35 @@ interface Env {
 }
 // --------------------------------------------------
 
-export const onRequestPost: PagesFunction<Env> = async (context) => {
+export const onRequestPost = async (context: any) => {
   const { request, env } = context;
-
+  
   try {
-    const body = await request.json() as any;
-
-    // 1. Get password from the request
-    const {
-      id, name, mobile, region_id, location_id, 
-      cascade_id, village_id, primary_crop, 
-      membership_type, joint_year, password // <--- Added password
+    const body = await request.json();
+    const { 
+      name, mobile, password, region_id, location_id, 
+      cascade_id, village_id, membership_type, joint_year 
     } = body;
 
-    const newId = id || crypto.randomUUID();
+    // Generate a random ID
+    const newId = crypto.randomUUID();
 
-    // 2. Insert into Database (Added password column)
-    const info = await env.DB.prepare(`
+    await env.DB.prepare(`
       INSERT INTO farmers (
-        id, name, mobile, region_id, location_id, 
-        cascade_id, village_id, primary_crop, 
-        membership_type, joint_year, password
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        id, name, mobile, password, region_id, location_id, 
+        cascade_id, village_id, membership_type, joint_year
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
-      newId, name, mobile, region_id, location_id, 
-      cascade_id, village_id, primary_crop, 
-      membership_type, joint_year, password // <--- Bind password
+      newId, name, mobile, password, region_id, location_id, 
+      cascade_id, village_id, membership_type, joint_year
     ).run();
 
     return new Response(JSON.stringify({ success: true, id: newId }), {
       headers: { "Content-Type": "application/json" }
     });
 
-  } catch (error: any) {
-    console.error("Registration Error:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
+  } catch (err: any) {
+    return new Response(JSON.stringify({ error: err.message }), { 
       status: 500,
       headers: { "Content-Type": "application/json" }
     });
