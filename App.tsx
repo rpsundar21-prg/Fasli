@@ -71,36 +71,42 @@ const App: React.FC = () => {
   }, []);
 
   // Load Initial Data from D1 via Cloudflare API
-  useEffect(() => {
-    const initData = async () => {
-        setIsSyncing(true);
-        try {
-            const data = await ApiService.fetchAllData();
-            console.log("Master Data Load Sync:", data);
-            
-            if (data?.regions) setRegions(data.regions);
-            if (data?.locations) setLocations(data.locations);
-            if (data?.cascades) setCascades(data.cascades);
-            if (data?.villages) setVillages(data.villages);
+  const loadData = useCallback(async () => {
+    setIsSyncing(true);
+    try {
+        const data = await ApiService.fetchAllData();
+        console.log("D1 Cloud Master Data Sync:", {
+            regions: data?.regions?.length,
+            locations: data?.locations?.length,
+            cascades: data?.cascades?.length,
+            villages: data?.villages?.length
+        });
+        
+        if (data?.regions) setRegions(data.regions);
+        if (data?.locations) setLocations(data.locations);
+        if (data?.cascades) setCascades(data.cascades);
+        if (data?.villages) setVillages(data.villages);
 
-            if (data?.cultivations) setCultivations(data.cultivations);
-            if (data?.entries) setEntries(data.entries);
-            if (data?.queries) setQueries(data.queries);
-            if (data?.marketPosts) setMarketPosts(data.marketPosts);
-            if (data?.farmer) setCurrentUser(data.farmer);
-            if (data?.farmers) setFarmers(data.farmers);
-            
-            if (data?.cultivations?.length > 0) {
-                setActiveCultivationId(data.cultivations[0].id);
-            }
-        } catch (err) {
-            console.error("Cloud D1 Load Trace Error:", err);
-        } finally {
-            setIsSyncing(false);
+        if (data?.cultivations) setCultivations(data.cultivations);
+        if (data?.entries) setEntries(data.entries);
+        if (data?.queries) setQueries(data.queries);
+        if (data?.marketPosts) setMarketPosts(data.marketPosts);
+        if (data?.farmer) setCurrentUser(data.farmer);
+        if (data?.farmers) setFarmers(data.farmers);
+        
+        if (data?.cultivations?.length > 0 && !activeCultivationId) {
+            setActiveCultivationId(data.cultivations[0].id);
         }
-    };
-    initData();
-  }, []);
+    } catch (err) {
+        console.error("Cloud D1 Load Error:", err);
+    } finally {
+        setIsSyncing(false);
+    }
+  }, [activeCultivationId]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const syncWithCloud = async (action: () => Promise<any>) => {
       setIsSyncing(true);

@@ -28,7 +28,7 @@ export const onRequest: PagesFunction<Env> = async (context) => {
 
   try {
     // Fetch all farmers for registry/duplicate check
-    const farmersAll = await env.DB.prepare(`
+    const farmersRaw = await env.DB.prepare(`
       SELECT 
         id, name, mobile, 
         region_id AS regionId, 
@@ -40,36 +40,40 @@ export const onRequest: PagesFunction<Env> = async (context) => {
         joint_year AS jointYear 
       FROM farmers
     `).all();
+    const farmers = farmersRaw.results || [];
 
-    const cultivations = await env.DB.prepare("SELECT * FROM cultivations").all();
-    const entries = await env.DB.prepare("SELECT * FROM entries").all();
-    const queries = await env.DB.prepare("SELECT * FROM queries").all();
-    const marketPosts = await env.DB.prepare("SELECT * FROM market_posts").all();
+    const cultivationsRaw = await env.DB.prepare("SELECT * FROM cultivations").all();
+    const entriesRaw = await env.DB.prepare("SELECT * FROM entries").all();
+    const queriesRaw = await env.DB.prepare("SELECT * FROM queries").all();
+    const marketPostsRaw = await env.DB.prepare("SELECT * FROM market_posts").all();
     
     // Master Data with explicit aliasing to match TypeScript interfaces (camelCase)
-    const regions = await env.DB.prepare("SELECT id, name FROM regions").all();
-    const locations = await env.DB.prepare("SELECT id, region_id AS regionId, name FROM locations").all();
-    const cascades = await env.DB.prepare("SELECT id, location_id AS locationId, name FROM cascades").all();
-    const villages = await env.DB.prepare("SELECT id, cascade_id AS cascadeId, name FROM villages").all();
+    const regionsRaw = await env.DB.prepare("SELECT id, name FROM regions").all();
+    const locationsRaw = await env.DB.prepare("SELECT id, region_id AS regionId, name FROM locations").all();
+    const cascadesRaw = await env.DB.prepare("SELECT id, location_id AS locationId, name FROM cascades").all();
+    const villagesRaw = await env.DB.prepare("SELECT id, cascade_id AS cascadeId, name FROM villages").all();
 
     return new Response(JSON.stringify({
-      farmer: farmersAll.results.length > 0 ? farmersAll.results[0] : null,
-      farmers: farmersAll.results || [],
-      cultivations: cultivations.results || [],
-      entries: entries.results || [],
-      queries: queries.results || [],
-      marketPosts: marketPosts.results || [],
-      regions: regions.results || [],
-      locations: locations.results || [],
-      cascades: cascades.results || [],
-      villages: villages.results || []
+      farmer: farmers.length > 0 ? farmers[0] : null,
+      farmers: farmers,
+      cultivations: cultivationsRaw.results || [],
+      entries: entriesRaw.results || [],
+      queries: queriesRaw.results || [],
+      marketPosts: marketPostsRaw.results || [],
+      regions: regionsRaw.results || [],
+      locations: locationsRaw.results || [],
+      cascades: cascadesRaw.results || [],
+      villages: villagesRaw.results || []
     }), {
-      headers: { "Content-Type": "application/json" }
+      headers: { 
+        "Content-Type": "application/json",
+        "Cache-Control": "no-cache"
+      }
     });
   } catch (error: any) {
     console.error("D1 Fetch Error:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
+    return new Response(JSON.stringify({ error: error.message, regions: [], locations: [], cascades: [], villages: [] }), {
+      status: 200, // Return 200 with empty arrays to prevent frontend crash
       headers: { "Content-Type": "application/json" }
     });
   }
