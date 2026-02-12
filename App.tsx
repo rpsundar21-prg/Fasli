@@ -62,12 +62,27 @@ const App: React.FC = () => {
       regionName: "Tamil Nadu"
   }]);
 
+  // Handle URL Query Parameters (mode=admin)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('mode') === 'admin') {
+      setCurrentScreen(ScreenName.ADMIN_LOGIN);
+    }
+  }, []);
+
   // Load Initial Data from D1 via Cloudflare API
   useEffect(() => {
     const initData = async () => {
         setIsSyncing(true);
         try {
             const data = await ApiService.fetchAllData();
+            console.log("Master Data Load Sync:", data);
+            
+            if (data?.regions) setRegions(data.regions);
+            if (data?.locations) setLocations(data.locations);
+            if (data?.cascades) setCascades(data.cascades);
+            if (data?.villages) setVillages(data.villages);
+
             if (data?.cultivations) setCultivations(data.cultivations);
             if (data?.entries) setEntries(data.entries);
             if (data?.queries) setQueries(data.queries);
@@ -75,17 +90,11 @@ const App: React.FC = () => {
             if (data?.farmer) setCurrentUser(data.farmer);
             if (data?.farmers) setFarmers(data.farmers);
             
-            // Sync Master Data
-            if (data?.regions) setRegions(data.regions);
-            if (data?.locations) setLocations(data.locations);
-            if (data?.cascades) setCascades(data.cascades);
-            if (data?.villages) setVillages(data.villages);
-            
             if (data?.cultivations?.length > 0) {
                 setActiveCultivationId(data.cultivations[0].id);
             }
         } catch (err) {
-            console.error("Cloud D1 Load Trace:", err);
+            console.error("Cloud D1 Load Trace Error:", err);
         } finally {
             setIsSyncing(false);
         }
@@ -151,7 +160,6 @@ const App: React.FC = () => {
       const jsonStr = response.text?.match(/\{.*\}/s)?.[0];
       if (jsonStr) {
         const data = JSON.parse(jsonStr);
-        // Fixed Error in App.tsx on line 149: Added missing Forecast properties
         const newForecast: Forecast = {
           id: `f-${Date.now()}`,
           date: new Date().toISOString().split('T')[0],
@@ -173,7 +181,11 @@ const App: React.FC = () => {
   // Master Data Handlers
   const handleAddMaster = async (type: string, name: string, parentId?: string) => {
     const id = `${type}-${Date.now()}`;
-    const data = { id, name, regionId: parentId, locationId: parentId, cascadeId: parentId };
+    const data: any = { id, name };
+    if (type === 'location') data.regionId = parentId;
+    if (type === 'cascade') data.locationId = parentId;
+    if (type === 'village') data.cascadeId = parentId;
+
     const res = await ApiService.saveMasterData(type, data);
     if (res.success) {
         if (type === 'region') setRegions([...regions, { id, name }]);
@@ -241,7 +253,6 @@ const App: React.FC = () => {
       marketPosts
   };
 
-  // Fixed Error in App.tsx on line 21: Added full return statement to complete the component
   switch (currentScreen) {
     case ScreenName.WELCOME: return <WelcomeScreen {...authProps} />;
     case ScreenName.LOGIN: return <LoginScreen {...authProps} />;
@@ -278,5 +289,4 @@ const App: React.FC = () => {
   }
 };
 
-// Added default export to fix Error in index.tsx on line 3
 export default App;

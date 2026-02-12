@@ -18,14 +18,15 @@ interface AdminScreenProps {
   locations?: Location[];
   cascades?: Cascade[];
   villages?: Village[];
-  addRegion?: (name: string) => boolean;
-  deleteRegion?: (id: string) => void;
-  addLocation?: (rId: string, name: string) => boolean;
-  deleteLocation?: (id: string) => void;
-  addCascade?: (lId: string, name: string) => boolean;
-  deleteCascade?: (id: string) => void;
-  addVillage?: (cId: string, name: string) => boolean;
-  deleteVillage?: (id: string) => void;
+  // Fix: addRegion and similar methods should allow returning a Promise for async D1 operations
+  addRegion?: (name: string) => boolean | Promise<boolean>;
+  deleteRegion?: (id: string) => void | Promise<void>;
+  addLocation?: (rId: string, name: string) => boolean | Promise<boolean>;
+  deleteLocation?: (id: string) => void | Promise<void>;
+  addCascade?: (lId: string, name: string) => boolean | Promise<boolean>;
+  deleteCascade?: (id: string) => void | Promise<void>;
+  addVillage?: (cId: string, name: string) => boolean | Promise<boolean>;
+  deleteVillage?: (id: string) => void | Promise<void>;
 
   // Market
   marketPosts?: MarketPost[];
@@ -139,23 +140,24 @@ export const AdminMasterDataScreen: React.FC<AdminScreenProps> = ({
     const [selectedCascade, setSelectedCascade] = useState('');
     const [msg, setMsg] = useState('');
 
-    const handleAdd = () => {
+    // Fix: handleAdd needs to be async to await the add methods
+    const handleAdd = async () => {
         let success = false;
         setMsg('');
         if (!name.trim()) return;
 
-        if (level === 'Region' && addRegion) success = addRegion(name);
-        if (level === 'Location' && addLocation) {
+        if (level === 'Region' && addRegion) success = await addRegion(name);
+        else if (level === 'Location' && addLocation) {
             if (!selectedRegion) { setMsg('Error: Select Region first'); return; }
-            success = addLocation(selectedRegion, name);
+            success = await addLocation(selectedRegion, name);
         }
-        if (level === 'Cascade' && addCascade) {
+        else if (level === 'Cascade' && addCascade) {
             if (!selectedLocation) { setMsg('Error: Select Location first'); return; }
-            success = addCascade(selectedLocation, name);
+            success = await addCascade(selectedLocation, name);
         }
-        if (level === 'Village' && addVillage) {
+        else if (level === 'Village' && addVillage) {
             if (!selectedCascade) { setMsg('Error: Select Cascade first'); return; }
-            success = addVillage(selectedCascade, name);
+            success = await addVillage(selectedCascade, name);
         }
 
         if (success) {
@@ -256,11 +258,12 @@ export const AdminMasterDataScreen: React.FC<AdminScreenProps> = ({
                                     <td className="p-4 font-medium text-slate-700">{item.name}</td>
                                     <td className="p-4 text-right">
                                         <button 
-                                            onClick={() => {
-                                                if(level==='Region' && deleteRegion) deleteRegion(item.id);
-                                                if(level==='Location' && deleteLocation) deleteLocation(item.id);
-                                                if(level==='Cascade' && deleteCascade) deleteCascade(item.id);
-                                                if(level==='Village' && deleteVillage) deleteVillage(item.id);
+                                            // Fix: delete methods can be async, so we await them
+                                            onClick={async () => {
+                                                if(level==='Region' && deleteRegion) await deleteRegion(item.id);
+                                                if(level==='Location' && deleteLocation) await deleteLocation(item.id);
+                                                if(level==='Cascade' && deleteCascade) await deleteCascade(item.id);
+                                                if(level==='Village' && deleteVillage) await deleteVillage(item.id);
                                             }}
                                             className="text-red-500 hover:bg-red-50 p-2 rounded transition-colors"
                                         >

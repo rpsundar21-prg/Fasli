@@ -251,13 +251,14 @@ export interface AdminScreenProps extends CommonProps {
   locations?: Location[];
   cascades?: Cascade[];
   villages?: Village[];
-  addRegion?: (name: string) => boolean;
-  deleteRegion?: (id: string) => void;
-  addLocation?: (rId: string, name: string) => boolean;
-  deleteLocation?: (id: string) => void;
-  addCascade?: (lId: string, name: string) => boolean;
-  deleteCascade?: (id: string) => void;
-  addVillage?: (cId: string, name: string) => boolean;
-  deleteVillage?: (id: string) => void;
+  // Fix: addRegion and similar methods should allow returning a Promise for async D1 operations
+  addRegion?: (name: string) => boolean | Promise<boolean>;
+  deleteRegion?: (id: string) => void | Promise<void>;
+  addLocation?: (rId: string, name: string) => boolean | Promise<boolean>;
+  deleteLocation?: (id: string) => void | Promise<void>;
+  addCascade?: (lId: string, name: string) => boolean | Promise<boolean>;
+  deleteCascade?: (id: string) => void | Promise<void>;
+  addVillage?: (cId: string, name: string) => boolean | Promise<boolean>;
+  deleteVillage?: (id: string) => void | Promise<void>;
   marketPosts?: MarketPost[];
 }
