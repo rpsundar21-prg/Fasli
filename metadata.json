@@ -1,0 +1,7 @@
+{
+  "name": "Fasli 2.0",
+  "description": "A comprehensive agricultural management app for Tamil Nadu farmers to track expenses, yields, and profits, featuring a dedicated admin portal for analytics.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
