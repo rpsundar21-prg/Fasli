@@ -49,9 +49,9 @@ export const onRequest: PagesFunction<Env> = async (context) => {
     
     // Master Data with explicit aliasing to match TypeScript interfaces (camelCase)
     const regionsRaw = await env.DB.prepare("SELECT id, name FROM regions").all();
-    const locationsRaw = await env.DB.prepare("SELECT id, region_id AS regionId, name FROM locations").all();
-    const cascadesRaw = await env.DB.prepare("SELECT id, location_id AS locationId, name FROM cascades").all();
-    const villagesRaw = await env.DB.prepare("SELECT id, cascade_id AS cascadeId, name FROM villages").all();
+const locationsRaw = await env.DB.prepare("SELECT id, region_id AS regionId, name FROM locations").all();
+const cascadesRaw = await env.DB.prepare("SELECT id, location_id AS locationId, name FROM cascades").all();
+const villagesRaw = await env.DB.prepare("SELECT id, cascade_id AS cascadeId, name FROM villages").all();
 
     return new Response(JSON.stringify({
       farmer: farmers.length > 0 ? farmers[0] : null,
