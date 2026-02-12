@@ -238,6 +238,7 @@ export interface AuthScreenProps extends CommonProps {
   cascades?: Cascade[];
   villages?: Village[];
   farmers?: FarmerProfile[];
+  setCurrentUser?: (user: FarmerProfile) => void;
 }
 
 export interface AdminScreenProps extends CommonProps {

@@ -107,6 +107,26 @@ const App: React.FC = () => {
     }
   }, []);
 
+ // --- SESSION CHECK (Keeps user logged in) ---
+  useEffect(() => {
+    const storedSession = localStorage.getItem('user_session');
+    
+    if (storedSession) {
+      try {
+        const parsedUser = JSON.parse(storedSession);
+        setCurrentUser(parsedUser); // <--- Matches your existing variable 'currentUser'
+        
+        // Only redirect if we are currently on the Auth screens
+        if (currentScreen === ScreenName.WELCOME || currentScreen === ScreenName.LOGIN) {
+            setCurrentScreen(ScreenName.FARMER_DASHBOARD);
+        }
+      } catch (e) {
+        console.error("Session parse error", e);
+        localStorage.removeItem('user_session'); // Clear invalid session
+      }
+    }
+  }, []); // Runs once when App starts
+
   // Load Initial Data from D1 via Cloudflare API
   const loadData = useCallback(async () => {
     setIsSyncing(true);
@@ -276,7 +296,7 @@ const App: React.FC = () => {
     onViewForecasts: () => { fetchRealForecast(); setCurrentScreen(ScreenName.FORECAST); }
   };
 
-  const authProps = { ...commonProps, regions, locations, cascades, villages, farmers };
+  const authProps = { ...commonProps, regions, locations, cascades, villages, farmers, setCurrentUser };
 
   const adminProps = {
       ...commonProps,

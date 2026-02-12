@@ -78,7 +78,49 @@ export const WelcomeScreen: React.FC<AuthScreenProps> = ({ navigate, t, language
 };
 
 // 2. Login Screen (Fixed to ensure it's functional)
-export const LoginScreen: React.FC<AuthScreenProps> = ({ navigate, t }) => {
+export const LoginScreen: React.FC<AuthScreenProps> = ({ navigate, t, setCurrentUser }) => {
+  const [mobile, setMobile] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+
+  const handleLogin = async () => {
+    setError('');
+    
+    // 1. Basic Validation
+    if (!mobile || !password) {
+        setError('Please enter Mobile Number and Password');
+        return;
+    }
+
+    try {
+        // 2. Call Cloudflare Login API
+        const response = await fetch('/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ mobile, password })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            // 3. Save Session & Update State
+            localStorage.setItem('user_session', JSON.stringify(result.user));
+            
+            if (setCurrentUser) {
+                setCurrentUser(result.user);
+            }
+            
+            // 4. Go to Dashboard
+            navigate(ScreenName.FARMER_DASHBOARD);
+        } else {
+            setError(result.error || "Login Failed");
+        }
+    } catch (err) {
+        console.error(err);
+        setError("Network Error: Could not connect to server.");
+    }
+  };
+
   return (
     <MobileLayout className="bg-white">
         <div className="p-8 flex flex-col h-full">
@@ -93,22 +135,26 @@ export const LoginScreen: React.FC<AuthScreenProps> = ({ navigate, t }) => {
 
             <div className="space-y-6">
                 <div className="space-y-4">
-                  <Input label={t('username')} placeholder="Admin or Mobile Number" />
-                  <Input label={t('password')} type="password" placeholder="••••••••" />
+                  <Input 
+                    label={t('username')} 
+                    placeholder="Mobile Number" 
+                    value={mobile}
+                    onChange={(e) => setMobile(e.target.value)}
+                  />
+                  <Input 
+                    label={t('password')} 
+                    type="password" 
+                    placeholder="••••••••" 
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
                 </div>
                 
-                <Button onClick={() => navigate(ScreenName.FARMER_DASHBOARD)} className="h-14">
+                {error && <p className="text-red-500 text-sm font-bold">{error}</p>}
+
+                <Button onClick={handleLogin} className="h-14">
                   {t('login')}
                 </Button>
-                
-                <button className="w-full text-center text-sm font-bold text-green-700">
-                    {t('forgot_password')}
-                </button>
-            </div>
-
-            <div className="mt-auto pt-12 text-center text-gray-400">
-                <Leaf className="w-8 h-8 mx-auto mb-2 opacity-20" />
-                <p className="text-[10px] uppercase tracking-widest font-bold">Powered by Fasli Intelligence</p>
             </div>
         </div>
     </MobileLayout>
