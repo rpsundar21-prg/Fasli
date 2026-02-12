@@ -182,7 +182,6 @@ export const RegisterScreen: React.FC<AuthScreenProps> = ({ navigate, t, regions
     const filteredCascades = cascades.filter(c => c.locationId === selectedLocation);
     const filteredVillages = villages.filter(v => v.cascadeId === selectedCascade);
 
-    // Replace your existing handleRegister with this:
     const handleRegister = async () => {
         setValidationError('');
         
@@ -197,41 +196,39 @@ export const RegisterScreen: React.FC<AuthScreenProps> = ({ navigate, t, regions
         }
 
         // 2. Prepare Data
+        // Note: variable names must match what functions/register.ts expects
         const farmerData = {
             name: name,
             mobile: mobile,
-            password: password, // sending password to backend
+            password: password, 
             region_id: selectedRegion,
             location_id: selectedLocation,
             cascade_id: selectedCascade,
             village_id: selectedVillage,
             membership_type: membership,
-            joint_year: jointYear,
-            primary_crop: "Pending" 
+            joint_year: jointYear
         };
 
         try {
-            // 3. Send to Cloudflare Backend
+            // 3. Call the API
+            console.log("Sending data to /register...", farmerData); 
             const response = await fetch('/register', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(farmerData)
             });
 
-            // 4. Handle Response
             const result = await response.json();
 
-            if (response.ok && result.success) {
-                alert("Registration Successful!");
-                navigate(ScreenName.LOGIN); // Send to Login screen after success
+            if (result.success) {
+                alert("Registration Successful! Please Login.");
+                navigate(ScreenName.LOGIN);
             } else {
-                // If the server returns an error (like "Mobile already exists")
-                setValidationError(result.error || "Registration Failed");
+                setValidationError("Server Error: " + (result.error || "Unknown error"));
             }
         } catch (error) {
             console.error(error);
-            // This is the error you saw in the screenshot
-            setValidationError("Network Error: Could not connect to server. (Check if 'functions/register.ts' is deployed)");
+            setValidationError("Network Error: Could not connect to server. (Is the API deployed?)");
         }
     };
 

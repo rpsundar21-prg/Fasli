@@ -125,7 +125,7 @@ const App: React.FC = () => {
         localStorage.removeItem('user_session'); // Clear invalid session
       }
     }
-  }, []); // Runs once when App starts
+  }, []);
 
   // Load Initial Data from D1 via Cloudflare API
   const loadData = useCallback(async () => {
